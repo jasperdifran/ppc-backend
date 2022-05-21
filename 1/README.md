@@ -120,7 +120,7 @@ There are many testing platforms for sending requests to routes, the one that I 
 
 Assuming you are using ARC, once you open it your window should look something like this:
 
-![Home screen of Advanced Rest Client](https://imgur.com/a/XZCmo0g)
+![Home screen of Advanced Rest Client](https://i.imgur.com/T4JArjX.png)
 
 Set the request type to `GET`, set the `Request URL` to `http://localhost:5000/venues/johnscafe` and hit enter. You should see a review "Rated 10/10!"  come up as the response.
 
