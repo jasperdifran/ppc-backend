@@ -1,0 +1,15 @@
+{
+  "name": "1",
+  "version": "1.0.0",
+  "description": "This tutorial will walk you through creating a very simple Express.js backend, how to run it and how to add some routes.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.1"
+  }
+}
