@@ -1,5 +1,5 @@
 const express = require('express')
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectID } = require('mongodb');
 
 var app = express();
 var router = express.Router();
@@ -16,14 +16,24 @@ app.use(express.json())
 
 app.use("/", router);
 
-app.get("/venues", (req, res) => {
-    res.send(database);
-})
-
 app.get("/venues", async (req, res) => {
-    let query = { name: req.query.name };
-    let item = await col.findOne(query);
+    let item = undefined
+    if (req.query.id) {
+        item = await col.find(ObjectID(req.query.id)).toArray();
+    } else {
+        item = await col.find().toArray();
+    }
     res.send(item || {"error": "Not found!"})
+});
+
+app.put("/venues", async (req, res) => {
+    await col.updateOne({_id: ObjectID(req.query.id)}, {$set: req.body});
+    res.send({"message": "success!"})
+});
+
+app.delete("/venues", async (req, res) => {
+    await col.deleteOne({_id: ObjectID(req.query.id)});
+    res.send({"message": "success!"})
 });
 
 app.post("/venues", async (req, res) => {

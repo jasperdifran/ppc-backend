@@ -86,19 +86,20 @@ So now, when we send a POST request to our server to add in a new cafe, it shoul
 
 Excellent, run your server and send a post request similar to the first exercise but with our new JSON format to add in another venue. You should get a success message on your console.
 
-
 ### Finding
 Finding documents can get a little bit trickier. First we establish a `query` object describing what we want to find in the database. Then we pass that `query` object to the `findOne` or `find` functions, depending on if we want all results that match returned or just one.
 
 ```javascript
-app.get("/venues/:name", async (req, res) => {
-    let query = { name: req.params.name };
+app.get("/venues", async (req, res) => {
+    let query = { name: req.query.name };
     let item = await col.findOne(query);
     res.send(item || {"error": "Not found!"})
 });
 ```
 
 Firstly make sure the GET request is asynchronous, else we can't use `await`. Then we want to build our `query` object by telling MongoDB "find things that have a name field the same as `req.params.name`". Then we collect the item from our database. `findOne` will return `null` if no documents matched the query, so in our send we attempt to return `item` but if it's null (or undefined) then we return a helpful error message.
+
+Try running your server again and searching for a venue with the name "crumbs". You should get back the example venue we added earlier. You might also notice an "id" field, MongoDB is very kind and automatically adds a unique ID to each document. 
 
 Good job! To sum up, now we have connected to our cluster, created a database, created a collection within that database and added some venues to it. We can also find a venue which matches a name parameter!
 

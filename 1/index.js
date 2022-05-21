@@ -10,11 +10,7 @@ app.use(express.json())
 app.use("/", router);
 
 app.get("/venues", (req, res) => {
-    res.send(database);
-})
-
-app.get("/venues/:name", (req, res) => {
-    res.send(database[req.params.name] ||"Hey there!");
+    res.send(database[req.query.name] ||"Hey there!");
 });
 
 app.post("/venues", (req, res) => {

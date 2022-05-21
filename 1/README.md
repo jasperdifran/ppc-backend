@@ -87,14 +87,12 @@ There are four request types `GET`, `POST`, `UPDATE`, `DELETE`. We will firstly 
 The `GET` request is pretty self explanatory and refers to collecting data from a backend. We can add a get route to our router by adding the following line, ensure you add this after you initialise the router object and before the `app.listen`.
 
 ```
-router.get("/venue/:name", (req, res) => {})
+router.get("/venue", (req, res) => {})
 ```
 
-To this `get` function, we have passed the route (`"/venue/:name"`) as the first parameter, and a callback function as the second. Right now, our callback just takes in the arguments `req` and `res` and does nothing. `req` refers to the request payload, and `res` the response payload.
+To this `get` function, we have passed the route (`"/venue"`) as the first parameter, and a callback function as the second. Right now, our callback just takes in the arguments `req` and `res` and does nothing. `req` refers to the request payload, and `res` the response payload.
 
-The `:name` in the route lets us send parameters in the request URL to then be interpreted by the backend.
-
-So now if we were to run our application and send a request to `localhost:5000/venue/johnscafe` we would trigger this route with the `name` parameter set to `"johnscafe"` and the callback would be called.
+So now if we were to run our application and send a request to `localhost:5000/venue?name=johnscafe` we would trigger this route with the query parameter `name` set to `"johnscafe"` and the callback would be called.
 
 Before we try running it, we want to get some kind of response from our server if we send it a request. Let's add a kind of "database" into our application. Under the `router` object you created earlier, add the line:
 ```
@@ -104,10 +102,10 @@ let database = {johnscafe: "Rated 10/10!"};
 Now in our `GET` callback function body add the following line:
 
 ```
-    res.send(database[req.params.name] || "Venue not found!");
+    res.send(database[req.query.name] || "Venue not found!");
 ```
 
-This checks if `name` is in our database, if so return the corresponding value. Otherwise return "Venue not found!".
+This checks if `name` is in our database, if so return the corresponding value. Otherwise return "Venue not found!". `req.query` stores any query parameters we pass in after the `?`. If we wanted to send multiple, they get separated by an `&`.
 
 `res.send` simply sends our reply from this route.
 
@@ -122,7 +120,7 @@ Assuming you are using ARC, once you open it your window should look something l
 
 ![Home screen of Advanced Rest Client](https://i.imgur.com/T4JArjX.png)
 
-Set the request type to `GET`, set the `Request URL` to `http://localhost:5000/venues/johnscafe` and hit enter. You should see a review "Rated 10/10!"  come up as the response.
+Set the request type to `GET`, set the `Request URL` to `http://localhost:5000/venues?name=johnscafe` and hit enter. You should see a review "Rated 10/10!"  come up as the response.
 
 Try changing the name of the venue we are requesting and see what the server responds with.
 
@@ -143,4 +141,4 @@ We can write all of these reviews to our databse using `Object.assign`. In our P
 
 Now let's try testing our POST request. Open up ARC again, set the request type to `POST` and set the request URL to `http://localhost:5000/venues`. You will have noticed an extra tab show up called `BODY` below where you input the post request payload. Set the type to JSON and in the body section input something like `{"crumbs": "Rated 9/10"}`. Send the request and make sure your success message is returned.
 
-Now, try making a GET request to `http://localhost:5000/venues/crumbs` and we should see our newly added venue review!. 
+Now, try making a GET request to `http://localhost:5000/venues?name=crumbs` and we should see our newly added venue review!. 
