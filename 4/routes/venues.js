@@ -3,32 +3,28 @@ const { getUsers, getVenues } = require('../db');
 
 venuesRouter.get("/", async (req, res) => {
     let item = undefined
-    let venues = await getVenues();
     if (req.query.id) {
-        item = await venues.find(ObjectId(req.query.id)).toArray();
+        item = await Venue.findById(req.query.id)
     } else {
-        item = await venues.find().toArray();
+        item = await Venue.find()
     }
-    console.log(item);
-    res.send(item || { "error": "Not found!" })
+    res.send(item || { "message": "Not found!" })
 });
 
 venuesRouter.put("/", async (req, res) => {
-    let venues = await getVenues();
-    await venues.updateOne({ _id: ObjectId(req.query.id) }, { $set: req.body });
+    await Venue.findByIdAndUpdate(req.query.id, req.body)
     res.send({ "message": "success!" })
 });
 
 venuesRouter.delete("/", async (req, res) => {
-    let venues = await getVenues();
-    await venues.deleteOne({ _id: ObjectId(req.query.id) });
+    await Venue.findByIdAndDelete(req.query.id)
     res.send({ "message": "success!" })
 });
 
 venuesRouter.post("/", async (req, res) => {
-    let venues = await getVenues();
-    await venues.insertOne(req.body)
-    res.send("Success");
+    let item = new Venue(req.body)
+    await item.save();
+    res.send({ "message": "success!" })
 });
 
-module.exports.venuesRouter = venuesRouter
+module.exports = venuesRouter

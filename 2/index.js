@@ -1,40 +1,34 @@
 const express = require('express')
-const { MongoClient } = require('mongodb');
+const mongoose = require('mongoose');
+const Venue = require('./models/venue');
 
 var app = express();
 var router = express.Router();
 
-const url = 'mongodb+srv://jasperdif:2Rtyz501@cluster0.3jv0w.mongodb.net/?retryWrites=true&w=majority'
-let client = new MongoClient(url);
-
-let db = undefined;
-let col = undefined;
-
-const dbName = 'venues'
+const url = 'mongodb+srv://jasperdif:2Rtyz501@cluster0.3jv0w.mongodb.net/venueWatcher?retryWrites=true&w=majority'
 
 app.use(express.json())
 
 app.use("/", router);
 
-app.get("/venues", (req, res) => {
-    res.send(database);
-})
-
 app.get("/venues", async (req, res) => {
     let query = { name: req.query.name };
-    let item = await col.findOne(query);
-    res.send(item || {"error": "Not found!"})
+    let v = await Venue.find(query).exec();
+    res.send(v)
 });
 
 app.post("/venues", async (req, res) => {
-    await col.insertOne(req.body)
-    res.send("Success");
+    let item = new Venue(req.body)
+    await item.save();
+    res.send({ message: "Venue inserted" });
 });
 
 app.listen(5000, async () => {
-    await client.connect();
-    db = client.db('venues');
-    col = db.collection('venues');
-    console.log("Server started");
-    console.log("Listening on port 5000");
+    mongoose.connect(url, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    }).then(() => {
+        console.log("Server started");
+        console.log("Listening on port 5000");
+    })
 });

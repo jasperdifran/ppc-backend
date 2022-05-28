@@ -10,33 +10,47 @@ Once you have created an account and launched an Atlas cluster, navigate to the 
 
 You should see a connection string there, mine looks like this `mongodb+srv://jasperdif:<password>@cluster0.3jv0w.mongodb.net/?retryWrites=true&w=majority`. If you have something like that, congrats! We will come back to it later.
 
-We will also be requiring the `mongodb` package for this, so navigate to the directory with your `package.json` and run the command `npm install mongodb`.
+We will also be requiring the `mongodb` package for this, so navigate to the directory with your `package.json` and run the command `npm install mongodb mongoose`.
+
+The mongoose package is the main one we will use for interacting with the database. 
 
 ## Connecting to MongoDB
-Firstly import the MongoClient using the line.
+Firstly import mongoose using the line.
 
 ```javascript
-const { MongoClient } = require('mongodb');
+const mongoose = require('mongoose');
 ```
 
-The reason we are wrapping this import in curly braces is because `MongoClient` is not the default export for `mongodb`. Read more about exports and modules [here](https://developer.mozilla.org/en-US/docs/web/javascript/reference/statements/export).
-
-Next, we must delete our old database from our code, as in remove the `database` variable. We will replace it with the following few lines.
+Next, we must delete our old database from our code, as in remove the `database` variable. We will replace it with the following line.
 
 ```javascript
 const url = 'YOUR_CONNECTION_STRING'
-let client = new MongoClient(url);
 ```
 
-Let's walk through this, we are getting our connection string from earlier, replacing the `<password>` section in it with our password and saving it as a constant value. Next we are instantiating a new MongoDB client with our connection string. This `MongoClient` is what will manage our connections to the database.
+Let's walk through this, we are getting our connection string from earlier, replacing the `<password>` section in it with our password and saving it as a constant value. However we do want to make one other adjustment to our connection URL. It should look something like this: 
 
-Now we want to change our `app.listen` functionality a little bit. We will be introducing an `await` statement so we firstly need to convert the function we pass to `app.listen` to be asynchronous. Then we want to call the `connect` method on our client. The `listen` function should look a little bit like this
+```
+mongodb+srv://jasperdif:<password>@cluster0.3jv0w.mongodb.net/?retryWrites=true&w=majority
+```
+
+But we want it to look like this 
+```
+mongodb+srv://jasperdif:<password>@cluster0.3jv0w.mongodb.net/venueWatcher?retryWrites=true&w=majority'
+```
+
+The difference being `venueWatcher` after the MongoDB host name. This ensures we connect to the database called `venueWatcher` inside our cluster.
+
+Now we want to change our `app.listen` functionality a little bit. We will be introducing an `await` statement so we firstly need to convert the function we pass to `app.listen` to be asynchronous. Then we connect mongoose and once that has finished we print some success messages, like so:
 
 ```javascript
 app.listen(5000, async () => {
-    await client.connect();
-    console.log("Server started");
-    console.log("Listening on port 5000");
+    mongoose.connect(url, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    }).then(() => {
+        console.log("Server started");
+        console.log("Listening on port 5000");
+    })
 });
 ```
 
@@ -45,31 +59,10 @@ Looks good! We have changed this function to be asynchronous, added in the `awai
 Now try running `npm start`. If there's a little bit of a delay and then you get the success messages, good job! You have successfully connected to your Atlas cluster.
 
 ## Creating a database
-The heirarchy of data in MongoDB is as such, clusters store databases which store collections which store documents. We have so far connected to the cluster, now we want to make a database inside that cluster.
-
-Make two variables near the top of your `index.js` called `venuesdb` and `venuescollection` and set them to `undefined`. Surprise, they will hold our `venues` database and collection. After we have connected to our client in the `app.listen` function, we can create a new database and collection inside that database then save them to our variables with the following two lines:
-
-```javascript
-    venuesdb = client.db('venues');
-    venuescollection = db.collection('venues');
-```
-
-It is important to keep in mind that if you already had a database named 'venues' this will give you a connection to that, if not then it will create one.
+The heirarchy of data in MongoDB is as such, clusters store databases which store collections which store documents. So far we have connected mongoose to our venuesWatcher database. If this database already existed we would connect to the existing one, otherwise we create a new one.
 
 ## Using MongoDB
-### Inserting
-Inserting documents (some JSON data) into a MongoDB collection is incredibly easy. To do this, let's change our `POST` route.
-
-```javascript
-app.post("/venues", async (req, res) => {
-    await col.insertOne(req.body)
-    res.send("Success");
-});
-```
-
-Notice we have made 2 changes here, the function has become asynchronous so we put `async` before the parameters. Next we have swapped out `Object.assign` for the MongoDB `insertOne` function.
-
-Now that we have a more sophisticated database, we are going to change our data structure. Now, in our venues collection we will want to store venues in the following format:
+Now that we have a more sophisticated database, we are going to change our data structure. For each venue we want to store a few fields in the following format:
 
 ```json
 {
@@ -82,25 +75,89 @@ Now that we have a more sophisticated database, we are going to change our data 
 }
 ```
 
-So now, when we send a POST request to our server to add in a new cafe, it should have all of these fields in it.
-
-Excellent, run your server and send a post request similar to the first exercise but with our new JSON format to add in another venue. You should get a success message on your console.
-
-### Finding
-Finding documents can get a little bit trickier. First we establish a `query` object describing what we want to find in the database. Then we pass that `query` object to the `findOne` or `find` functions, depending on if we want all results that match returned or just one.
+However, we also want to maintain this structure in our database. Right now it would be a nuisance to check whether or not each incoming request has each of these fields. So, we are gonig to use Mongoose to handle this for us. Now, make a new folder in our root called `models`, and inside that create a file called `venue.js`. Fill this file with the following lines:
 
 ```javascript
+const mongoose = require('mongoose')
+const Schema = mongoose.Schema
+
+const Venue = new Schema({
+    name: {
+        type: String,
+        default: "",
+    },
+    tags: {
+        type: [String],
+        default: [],
+    },
+    address: {
+        type: String,
+        default: "",
+    },
+    notes: {
+        type: String,
+        default: "",
+    },
+    visits: {
+        type: Number,
+        default: 0,
+    },
+    rating: {
+        type: Number,
+        default: 0,
+    }
+})
+
+module.exports = mongoose.model("Venue", Venue)
+```
+
+As you can see we are importing `mongoose`, creating a schema (template for documents in a collection), defining each of the fields in our `Venue` schema then exporting it under the name `"Venue"`.
+
+Our `index.js` will also require a few additions. Below is how I have written `index.js`. Take note of the function we are using to add to the database (`item.save()`) and what we are using to search (`Venue.find().exec()`). The `exec` is simply forcing the query to be executed, as opposed to being returned a cursor. 
+
+```javascript
+const express = require('express')
+const { MongoClient } = require('mongodb');
+const mongoose = require('mongoose');
+const Venue = require('./models/venue');
+
+var app = express();
+var router = express.Router();
+
+const url = YOUR_MONGODB_STRING
+
+app.use(express.json())
+
+app.use("/", router);
+
 app.get("/venues", async (req, res) => {
     let query = { name: req.query.name };
-    let item = await col.findOne(query);
-    res.send(item || {"error": "Not found!"})
+    let v = await Venue.find(query).exec();
+    res.send(v)
+});
+
+app.post("/venues", async (req, res) => {
+    let item = new Venue(req.body)
+    await item.save();
+    res.send({ message: "Venue inserted" });
+});
+
+app.listen(5000, async () => {
+    let c = mongoose.connect(url, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    })
+    c.then(() => {
+        console.log("Server started");
+        console.log("Listening on port 5000");
+    })
 });
 ```
 
-Firstly make sure the GET request is asynchronous, else we can't use `await`. Then we want to build our `query` object by telling MongoDB "find things that have a name field the same as `req.params.name`". Then we collect the item from our database. `findOne` will return `null` if no documents matched the query, so in our send we attempt to return `item` but if it's null (or undefined) then we return a helpful error message.
+Notice we have added the keyword `async` in front of the route callback functions, allowing us to use `await` and other asynchronous operations.
 
-Try running your server again and searching for a venue with the name "crumbs". You should get back the example venue we added earlier. You might also notice an "id" field, MongoDB is very kind and automatically adds a unique ID to each document. 
+Try running your server again and adding in the example venue from earlier, then try searching for a venue with the name "crumbs". You might also notice an "id" field, MongoDB is very kind and automatically adds a unique ID to each document. 
 
-Good job! To sum up, now we have connected to our cluster, created a database, created a collection within that database and added some venues to it. We can also find a venue which matches a name parameter!
+Good job! To sum up, now we have connected to our cluster, created a model for venues, and connected our routes to properly interact with the model and find/add venues.
 
-How might we write a route which would get all venues with a rating of 3? With a rating *greater* than 3? I'll leave these as an exercise to you, the [MongoDB documentation](https://www.mongodb.com/docs/drivers/node/current/usage-examples/findOne/) might help.
+How might we write a route which would get all venues with a rating of 3? With a rating *greater* than 3? I'll leave these as an exercise to you, the [MongoDB documentation](https://www.mongodb.com/docs/drivers/node/current/usage-examples/findOne/) and the [Mongoose Documentation](https://mongoosejs.com/) might help.

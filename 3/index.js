@@ -1,16 +1,11 @@
 const express = require('express')
-const { MongoClient, ObjectID } = require('mongodb');
+const Venue = require('./models/venue')
+const mongoose = require('mongoose')
 
 var app = express();
 var router = express.Router();
 
-const url = 'mongodb+srv://jasperdif:2Rtyz501@cluster0.3jv0w.mongodb.net/?retryWrites=true&w=majority'
-let client = new MongoClient(url);
-
-let db = undefined;
-let col = undefined;
-
-const dbName = 'venues'
+const url = 'mongodb+srv://jasperdif:2Rtyz501@cluster0.3jv0w.mongodb.net/venueWatcher?retryWrites=true&w=majority'
 
 app.use(express.json())
 
@@ -19,32 +14,35 @@ app.use("/", router);
 app.get("/venues", async (req, res) => {
     let item = undefined
     if (req.query.id) {
-        item = await col.find(ObjectID(req.query.id)).toArray();
+        item = await Venue.findById(req.query.id)
     } else {
-        item = await col.find().toArray();
+        item = await Venue.find()
     }
-    res.send(item || {"error": "Not found!"})
+    res.send(item || { "error": "Not found!" })
 });
 
 app.put("/venues", async (req, res) => {
-    await col.updateOne({_id: ObjectID(req.query.id)}, {$set: req.body});
-    res.send({"message": "success!"})
+    await Venue.findByIdAndUpdate(req.query.id, req.body)
+    res.send({ "message": "success!" })
 });
 
 app.delete("/venues", async (req, res) => {
-    await col.deleteOne({_id: ObjectID(req.query.id)});
-    res.send({"message": "success!"})
+    await Venue.findByIdAndDelete(req.query.id)
+    res.send({ "message": "success!" })
 });
 
 app.post("/venues", async (req, res) => {
-    await col.insertOne(req.body)
-    res.send("Success");
+    let item = new Venue(req.body)
+    await item.save();
+    res.send({ "message": "success!" })
 });
 
 app.listen(5000, async () => {
-    await client.connect();
-    db = client.db('venues');
-    col = db.collection('venues');
-    console.log("Server started");
-    console.log("Listening on port 5000");
+    mongoose.connect(url, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    }).then(() => {
+        console.log("Server started");
+        console.log("Listening on port 5000");
+    })
 });

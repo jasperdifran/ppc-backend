@@ -140,7 +140,36 @@ Notice we now have the line `app.use("/venues", venuesRouter)`. This means that 
 Good, all our code should now be in the correct spot and we can start building up our authentication process. Try adding some venues to our database using a POST request to the route `http://localhost:5000/venues`, then try collecting all of our venues using a GET request to the same url.
 
 ## Authentication
-### 
+Authentication is a beast and can be challenging to tackle. Passport simplifies it a great deal, but we still need to do a fair bit for it to work. Breaking it down into pieces is the best way to go about it.
+
+### Secrets
+We will need to add a few different secrets into our application to ensure it is secure. We do this by making a file called `.env` in our project directory. We then also wat to run the command `npm install dotenv` which will configure local variables found in the `.env` file. 
+
+Inside the `.env` file, we want to add some variables
+```
+JWT_SECRET = banans
+REFRESH_TOKEN_SECRET = apples
+SESSION_EXPIRY = 60 * 15
+REFRESH_TOKEN_EXPIRY = 60 * 60 * 24 * 30
+MONGO_DB_CONNECTION_STRING = [YOUR_CONNECTION_STRING]
+COOKIE_SECRET = jhdshhds884hfhhs-ew6dhjd
+```
+
+### Configure strategies
+The two strategies we added earlier, JWT and local (which is just username/password) need to be configured.
+
+#### Local
+In our `strategies/LocalStrategy.js`, we want to add the following lines:
+
+```javascript
+
+
+
+```
+
+### Signup
+Let us begin by attempting to add users to the platform. In our 
+
 
 
 This authentication is loosely based on [this project](https://github.com/collegewap/mern-auth-server).
