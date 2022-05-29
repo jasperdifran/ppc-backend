@@ -1,5 +1,6 @@
 const express = require('express')
 const { initDb } = require("./db");
+const { usersRouter } = require('./routes/users');
 const { venuesRouter } = require('./routes/venues')
 
 var app = express();
@@ -7,6 +8,7 @@ var app = express();
 app.use(express.json())
 
 app.use("/venues", venuesRouter);
+app.use("/users", usersRouter)
 
 app.listen(5000, async () => {
     await initDb();

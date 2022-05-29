@@ -218,6 +218,8 @@ Then we set up a user object, making sure to store the hashed password and the s
 
 Hopefully that makes sense. It can be a lot to digest but try and make sure you understand the code and the process here.
 
+Make sure you import your new `usersRouter` in `index.js` and add it to your express app!
+
 ### Log in
 Logging in is a little bit easier. We can almost exactly copy the first two checks in the signup route, i.e making sure username and password are in the body and the user exists.
 
