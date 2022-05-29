@@ -19,26 +19,30 @@ app.use("/", router);
 app.get("/venues", async (req, res) => {
     let item = undefined
     if (req.query.id) {
-        item = await col.find(ObjectID(req.query.id)).toArray();
+        item = await col.find(ObjectId(req.query.id)).toArray();
     } else {
         item = await col.find().toArray();
     }
-    res.send(item || {"error": "Not found!"})
+    if (item) {
+        res.status(200).send(item)
+    } else {
+        res.status(404).send({ "error": "Not found!" })
+    }
 });
 
 app.put("/venues", async (req, res) => {
-    await col.updateOne({_id: ObjectID(req.query.id)}, {$set: req.body});
-    res.send({"message": "success!"})
+    await col.updateOne({ _id: ObjectId(req.query.id) }, { $set: req.body });
+    res.status(200).send({ "message": "success!" })
 });
 
 app.delete("/venues", async (req, res) => {
-    await col.deleteOne({_id: ObjectID(req.query.id)});
-    res.send({"message": "success!"})
+    await col.deleteOne({ _id: ObjectId(req.query.id) });
+    res.status(200).send({ "message": "success!" })
 });
 
 app.post("/venues", async (req, res) => {
     await col.insertOne(req.body)
-    res.send("Success");
+    res.status(200).send({ "message": "success!" })
 });
 
 app.listen(5000, async () => {

@@ -23,12 +23,16 @@ app.get("/venues", (req, res) => {
 app.get("/venues", async (req, res) => {
     let query = { name: req.query.name };
     let item = await col.findOne(query);
-    res.send(item || {"error": "Not found!"})
+    if (item) {
+        res.status(200).send(item)
+    } else {
+        res.status(404).send({ "error": "Not found!" })
+    }
 });
 
 app.post("/venues", async (req, res) => {
     await col.insertOne(req.body)
-    res.send("Success");
+    res.status(200).send("Success");
 });
 
 app.listen(5000, async () => {

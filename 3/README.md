@@ -13,7 +13,11 @@ Let us begin by giving us the option to collect ALL venues. Right now we can onl
     } else {
         item = await col.find();
     }
-    res.send(item || {"error": "Not found!"})
+    if (item) {
+        res.status(200).send(item)
+    } else {
+        res.status(404).send({ "error": "Not found!" })
+    }
 ```
 
 Now let's try running our server and making a request to `http://localhost:5000/venues?name=crumbs` ... success! How about without the query parameter?
@@ -66,7 +70,7 @@ We can simply copy and paste the function body from the PUT route, but remove th
 ```javascript
 app.delete("/venues", async (req, res) => {
     await col.deleteOne({_id: ObjectID(req.query.id)});
-    res.send({"message": "success!"})
+    res.status(200).send({"message": "success!"})
 });
 ```
 

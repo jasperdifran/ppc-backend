@@ -1,5 +1,5 @@
 # MongoDB
-In this exercise, we will be building upon the backend server we created in the previous exercise - []insertname[] - but we will switch to using MongoDB to store data.
+In this exercise, we will be building upon the backend server we created in the previous exercise - Creating a simple Express.js backend - but we will switch to using MongoDB to store data.
 
 MongoDB is a noSQL database with a generious free tier. It is often used for small hobby projects, but is more than capable of managing data for huge applications.
 
@@ -58,16 +58,16 @@ It is important to keep in mind that if you already had a database named 'venues
 
 ## Using MongoDB
 ### Inserting
-Inserting documents (some JSON data) into a MongoDB collection is incredibly easy. To do this, let's change our `POST` route.
+Inserting documents (some JSON data) into a MongoDB collection is incredibly easy. To do this, let's change our `POST` route to be the following:
 
 ```javascript
 app.post("/venues", async (req, res) => {
     await col.insertOne(req.body)
-    res.send("Success");
+    res.status(200).send("Success");
 });
 ```
 
-Notice we have made 2 changes here, the function has become asynchronous so we put `async` before the parameters. Next we have swapped out `Object.assign` for the MongoDB `insertOne` function.
+Notice we have made 3 changes here, the function has become asynchronous so we put `async` before the parameters. Next we have swapped out `Object.assign` for the MongoDB `insertOne` function. The last important change is adding in `.status(200)` to our send line. This is us sending back a *status code* to the client, where the status code `200` indicates that the request was successful. You can read about all of the status codes [here](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status). It is very important you use status codes with all of your routes as it helps the client determine what type of response the server is giving.
 
 Now that we have a more sophisticated database, we are going to change our data structure. Now, in our venues collection we will want to store venues in the following format:
 
@@ -93,11 +93,15 @@ Finding documents can get a little bit trickier. First we establish a `query` ob
 app.get("/venues", async (req, res) => {
     let query = { name: req.query.name };
     let item = await col.findOne(query);
-    res.send(item || {"error": "Not found!"})
+    if (item) {
+        res.status(200).send(item)
+    } else {
+        res.status(404).send({"error": "Not found!"})
+    }
 });
 ```
 
-Firstly make sure the GET request is asynchronous, else we can't use `await`. Then we want to build our `query` object by telling MongoDB "find things that have a name field the same as `req.params.name`". Then we collect the item from our database. `findOne` will return `null` if no documents matched the query, so in our send we attempt to return `item` but if it's null (or undefined) then we return a helpful error message.
+Firstly make sure the GET request is asynchronous, else we can't use `await`. Then we want to build our `query` object by telling MongoDB "find things that have a name field the same as `req.params.name`". Then we collect the item from our database. `findOne` will return `null` if no documents matched the query, so we check to see if it found a matching document or not.
 
 Try running your server again and searching for a venue with the name "crumbs". You should get back the example venue we added earlier. You might also notice an "id" field, MongoDB is very kind and automatically adds a unique ID to each document. 
 

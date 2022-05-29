@@ -1,13 +1,5 @@
-# Authentication
-Authentication is a big part of almost every web application
-
-For our app, we are going to use authentication middleware called Passport. Passport was made to simplify the process of adding authentication to a web app.
-
-To start, run the command `npm install passport passport-jwt passport-local jsonwebtoken`.
-- `passport`: The main package controlling Passport JS
-- `passport-jwt`: Strategy for us to do authentication while users are already logged in
-- `passport-local`: Strategy to assist with loggin in/signing up
-- `jsonwebtoken`: Helps with handling JSON Web Tokens
+# Users
+Users can be a big part of any web application.
 
 ## Refactoring
 We will need to start by moving around and refactoring some of our code to make it easier to understand. Right now we have it all sitting in one file "index.js".
@@ -140,7 +132,143 @@ Notice we now have the line `app.use("/venues", venuesRouter)`. This means that 
 Good, all our code should now be in the correct spot and we can start building up our authentication process. Try adding some venues to our database using a POST request to the route `http://localhost:5000/venues`, then try collecting all of our venues using a GET request to the same url.
 
 ## Authentication
-### 
+Authentication can be one of the most challenging parts of an application. If you want it to be properly secure there are many many different measures you need to take, so there are often pre written packages such as `PassportJS` already written to help simplify the process. `PassportJS` can be good, but it is a very flexible framework and can be challenging to get it up and running, especially with no prior experience in authentication
 
+For us though, we are going to make our own authentication process and do it in a simple way. This wil be a very easy way for you to add user specific functionality to your web app.
 
-This authentication is loosely based on [this project](https://github.com/collegewap/mern-auth-server).
+The general idea behind our authentication will be we get sent a request to `/users/signup` containing a username and password. Then we salt and hash the password and store that along with the username in our database. We then also send back a JSON Web Token (JWT), which on further requests a user can send to verify their identity. 
+
+Keep in mind, this process for authentication is not safe! UNSW offers some security courses which can help you better understand how to build a robust system. What we are making will help you add user functionality to your app but that is about it.
+
+### Sign up
+Tackling sign ups is a good place to start. For this we will need a couple more packages. Run `npm install dotenv jsonwebstoken` to install them. `dotenv` will allow us to create some environment variables and access them inside our application, `jsonwebtoken` gives us a few handy functions for dealing with authentication tokens. 
+
+Once you have run this, create a file in the root directory called `.env`. Put this line (or something similar in it):
+
+```
+SUPER_SECRET_KEY=Banana
+```
+
+You should probably switch `Banana`  out for a more complex string. If we put the line `require('dotenv').configure()` at the top of our file, we can access these variables from `process.env.SUPER_SECRET_KEY`. 
+
+Our `routes/users.js` should looks something like this:
+
+```js
+const usersRouter = require('express').Router()
+const crypto = require('crypto')
+const jwt = require('jsonwebtoken')
+const { getUsers } = require('../db');
+
+require('dotenv').configure()
+
+usersRouter.post('/signup', (req, res) => {
+    // Check for missing parameters
+    if (!req.body.username || !req.body.password) {
+        res.status(400).send({ "message": "Failed! Missing username or password" })
+        return;
+    }
+
+    // Collect our users collection
+    let users = await getUsers()
+
+    // Check if this user already exists
+    let exists = await users.findOne({ username: req.body.username })
+    if (exists) {
+        res.status(409).send({ "message": "Username taken!" })
+        return;
+    }
+
+    // Get salt
+    let salt = crypto.randomBytes(16).toString('hex')
+
+    // Initialise hash object
+    let hash = crypto.createHmac('sha512', salt)
+
+    // Combine password into hash
+    hash.update(req.body.password)
+
+    // Convert hash object to string
+    let hashed = hash.digest('hex')
+
+    let user = {
+        username: req.body.username,
+        salt: salt,
+        pass: hashed,
+        watchedVenues: []
+    }
+
+    await users.insertOne(user)
+
+    // Create token
+    let token = jwt.sign({ username: req.body.username }, process.env.SUPER_SECRET_KEY, { expiresIn: '1h' });
+
+    res.status(200).send({ token: token })
+})
+
+module.exports.usersRouter = usersRouter
+```
+
+This is a bit overwhelming, let's break it down a bit. We have initialised a new router, imported a couple of libraries and functions and then configured our `.env` file.
+
+Next we have created a post route at `/signup`. Within this, we check if the client has sent both username and password, checked if a user with that password already exists and if so exited with appropiate status codes and error messages. Next we have generated a 16 byte salt, used that to magically initialise a hashing object and then combined our new password with that hash. Then we can convert that hashing object to a hexadecimal string.
+
+> Remember to always store passwords in hashed form, never plaintext. Read [here](https://www.passcamp.com/blog/dangers-of-storing-and-sharing-passwords-in-plaintext/) for a bit of an explanation as to why
+
+Then we set up a user object, making sure to store the hashed password and the salt, initialised an empty array to hold our favourite venues and our username. We add this to the database and then create an access token using the user's username, our super secret key, and an expiry date 1 hour in the future. Usually we might set this expiry date to 15 minutes. Leaving the expiry date too long can mean more vulnerability to hackers.
+
+Hopefully that makes sense. It can be a lot to digest but try and make sure you understand the code and the process here.
+
+### Log in
+Logging in is a little bit easier. We can almost exactly copy the first two checks in the signup route, i.e making sure username and password are in the body and the user exists.
+
+Next, extract the salt we used from the database, use it to again create a hash object and combine it with the password sent in. Check that it matches what is in the database and if so generate a new jwt for the user.
+
+How I approached this is below:
+
+```js
+
+usersRouter.post('/login', async (req, res) => {
+    // Check for missing parameters
+    if (!req.body.username || !req.body.password) {
+        res.status(400).send({ "message": "Failed! Missing username or password" })
+        return;
+    }
+
+    // Collect our users collection
+    let users = await getUsers()
+
+    // Check if this user already exists
+    let user = await users.findOne({ username: req.body.username })
+    if (!user) {
+        res.status(409).send({ "message": "User not found!" })
+        return;
+    }
+
+    // Get salt
+    let salt = user.salt
+
+    // Initialise hash object
+    let hash = crypto.createHmac('sha512', salt)
+
+    // Combine password into hash
+    hash.update(req.body.password)
+
+    // Convert hash object to string
+    let hashed = hash.digest('hex')
+
+    if (hashed != user.pass) {
+        res.status(403).send({ "message": "Incorrect password!" })
+        return;
+    }
+
+    // Create token
+    let token = jwt.sign({ username: user.username }, process.env.SUPER_SECRET_KEY, { expiresIn: '1h' });
+
+    res.status(200).send({ token: token })
+
+});
+```
+
+I encourage you to explore different authentication options and research it as much as you can. Authentication is a super useful skill to have.
+
+### User specific routes

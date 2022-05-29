@@ -86,7 +86,7 @@ There are four request types `GET`, `POST`, `UPDATE`, `DELETE`. We will firstly 
 
 The `GET` request is pretty self explanatory and refers to collecting data from a backend. We can add a get route to our router by adding the following line, ensure you add this after you initialise the router object and before the `app.listen`.
 
-```
+```js
 router.get("/venue", (req, res) => {})
 ```
 
@@ -95,13 +95,14 @@ To this `get` function, we have passed the route (`"/venue"`) as the first param
 So now if we were to run our application and send a request to `localhost:5000/venue?name=johnscafe` we would trigger this route with the query parameter `name` set to `"johnscafe"` and the callback would be called.
 
 Before we try running it, we want to get some kind of response from our server if we send it a request. Let's add a kind of "database" into our application. Under the `router` object you created earlier, add the line:
-```
+
+```js
 let database = {johnscafe: "Rated 10/10!"};
 ```
 
 Now in our `GET` callback function body add the following line:
 
-```
+```js
     res.send(database[req.query.name] || "Venue not found!");
 ```
 
