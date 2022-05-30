@@ -8,7 +8,7 @@ require('dotenv').configure()
 usersRouter.post('/signup', async (req, res) => {
     // Check for missing parameters
     if (!req.body.username || !req.body.password) {
-        res.status(400).send({ "message": "Failed! Missing username or password" })
+        res.status(400).send({ error: "Failed! Missing username or password" })
         return;
     }
 
@@ -18,7 +18,7 @@ usersRouter.post('/signup', async (req, res) => {
     // Check if this user already exists
     let exists = await users.findOne({ username: req.body.username })
     if (exists) {
-        res.status(409).send({ "message": "Username taken!" })
+        res.status(409).send({ error: "Username taken!" })
         return;
     }
 
@@ -52,7 +52,7 @@ usersRouter.post('/signup', async (req, res) => {
 usersRouter.post('/login', async (req, res) => {
     // Check for missing parameters
     if (!req.body.username || !req.body.password) {
-        res.status(400).send({ "message": "Failed! Missing username or password" })
+        res.status(400).send({ error: "Failed! Missing username or password" })
         return;
     }
 
@@ -62,7 +62,7 @@ usersRouter.post('/login', async (req, res) => {
     // Check if this user already exists
     let user = await users.findOne({ username: req.body.username })
     if (!user) {
-        res.status(409).send({ "message": "User not found!" })
+        res.status(409).send({ error: "User not found!" })
         return;
     }
 
@@ -79,7 +79,7 @@ usersRouter.post('/login', async (req, res) => {
     let hashed = hash.digest('hex')
 
     if (hashed != user.pass) {
-        res.status(403).send({ "message": "Incorrect password!" })
+        res.status(403).send({ error: "Incorrect password!" })
         return;
     }
 

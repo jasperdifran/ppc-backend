@@ -10,25 +10,34 @@ venuesRouter.get("/", async (req, res) => {
         item = await venues.find().toArray();
     }
     console.log(item);
-    res.send(item || { "error": "Not found!" })
+
+    if (item) {
+        res.status(200).send(item)
+    } else {
+        res.status(404).send({ error: "None found" })
+    }
 });
 
 venuesRouter.put("/", async (req, res) => {
     let venues = await getVenues();
-    await venues.updateOne({ _id: ObjectId(req.query.id) }, { $set: req.body });
-    res.send({ "message": "success!" })
+    let up = await venues.updateOne({ _id: ObjectId(req.query.id) }, { $set: req.body });
+    if (up.modifiedCount > 0) {
+        res.status(200).send({ message: "Success!" })
+    } else {
+        res.status(404).send({ error: "Not found!" })
+    }
 });
 
 venuesRouter.delete("/", async (req, res) => {
     let venues = await getVenues();
     await venues.deleteOne({ _id: ObjectId(req.query.id) });
-    res.send({ "message": "success!" })
+    res.status(200).send({ message: "Success!" })
 });
 
 venuesRouter.post("/", async (req, res) => {
     let venues = await getVenues();
     await venues.insertOne(req.body)
-    res.send("Success");
+    res.status(200).send({ message: "Success!" });
 });
 
 module.exports.venuesRouter = venuesRouter
