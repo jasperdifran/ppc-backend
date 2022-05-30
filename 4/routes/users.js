@@ -3,7 +3,7 @@ const crypto = require('crypto')
 const jwt = require('jsonwebtoken')
 const { getUsers, getVenues } = require('../db');
 
-require('dotenv').configure()
+require('dotenv').config()
 
 usersRouter.post('/signup', async (req, res) => {
     // Check for missing parameters
@@ -89,5 +89,16 @@ usersRouter.post('/login', async (req, res) => {
     res.status(200).send({ token: token })
 
 });
+
+usersRouter.post('/myvenues', async (req, res) => {
+    try {
+        let decoded = jwt.verify(req.query.token, process.env.SUPER_SECRET_KEY);
+        await users.updateOne({ username: decoded.username },
+            { $push: { watchedVenues: req.body.venueid } })
+        res.status(200).send({ message: "Success! Venue added" })
+    } catch (error) {
+        res.status(401).send({ error: "Token invalid or expired" })
+    }
+})
 
 module.exports.usersRouter = usersRouter

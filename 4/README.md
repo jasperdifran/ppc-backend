@@ -212,7 +212,7 @@ This is a bit overwhelming, let's break it down a bit. We have initialised a new
 
 Next we have created a post route at `/signup`. Within this, we check if the client has sent both username and password, checked if a user with that password already exists and if so exited with appropiate status codes and error messages. Next we have generated a 16 byte salt, used that to magically initialise a hashing object and then combined our new password with that hash. Then we can convert that hashing object to a hexadecimal string.
 
-> Remember to always store passwords in hashed form, never plaintext. Read [here](https://www.passcamp.com/blog/dangers-of-storing-and-sharing-passwords-in-plaintext/) for a bit of an explanation as to why
+> Remember to always store passwords in hashed form, never plaintext. Read [here](https://www.passcamp.com/blog/dangers-of-storing-and-sharing-passwords-in-plaintext/) for a bit of an explanation as to why.
 
 Then we set up a user object, making sure to store the hashed password and the salt, initialised an empty array to hold our favourite venues and our username. We add this to the database and then create an access token using the user's username, our super secret key, and an expiry date 1 hour in the future. Usually we might set this expiry date to 15 minutes. Leaving the expiry date too long can mean more vulnerability to hackers.
 
@@ -228,7 +228,6 @@ Next, extract the salt we used from the database, use it to again create a hash 
 How I approached this is below:
 
 ```js
-
 usersRouter.post('/login', async (req, res) => {
     // Check for missing parameters
     if (!req.body.username || !req.body.password) {
@@ -267,10 +266,19 @@ usersRouter.post('/login', async (req, res) => {
     let token = jwt.sign({ username: user.username }, process.env.SUPER_SECRET_KEY, { expiresIn: '1h' });
 
     res.status(200).send({ token: token })
-
 });
 ```
 
 I encourage you to explore different authentication options and research it as much as you can. Authentication is a super useful skill to have.
 
 ### User specific routes
+We want to give users the ability to "watch" a venue. To do this, we will want to add a venue's object id to that `watchedVenues` array in each user object. 
+
+#### Adding Venue
+To add a venue, we want to use the mongodb `$push` functionality. Set up a POST route in our users function and give it the url `/myvenues`. We are going to keep it simple and asssume that any `venueid` we are given by the client will correspond to a valid venue. 
+
+Also, because we created the token we are being passed and we know that a valid username is contained in that token, if we can decode it with our secret key we can be sure it came from a valid user.
+
+#### Collecting venues
+
+#### Deleting venues
