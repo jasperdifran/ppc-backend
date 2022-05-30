@@ -87,7 +87,6 @@ usersRouter.post('/login', async (req, res) => {
     let token = jwt.sign({ username: user.username }, process.env.SUPER_SECRET_KEY, { expiresIn: '1h' });
 
     res.status(200).send({ token: token })
-
 });
 
 usersRouter.post('/myvenues', async (req, res) => {

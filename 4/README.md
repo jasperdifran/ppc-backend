@@ -279,6 +279,24 @@ To add a venue, we want to use the mongodb `$push` functionality. Set up a POST 
 
 Also, because we created the token we are being passed and we know that a valid username is contained in that token, if we can decode it with our secret key we can be sure it came from a valid user.
 
+```js
+usersRouter.post('/myvenues', async (req, res) => {
+    try {
+        let decoded = jwt.verify(req.query.token, process.env.SUPER_SECRET_KEY);
+        await users.updateOne({ username: decoded.username },
+            { $push: { watchedVenues: req.body.venueid } })
+        res.status(200).send({ message: "Success! Venue added" })
+    } catch (error) {
+        res.status(401).send({ error: "Token invalid or expired" })
+    }
+})
+```
+
+Clearly this is a lot more simple than the `login` and `signup` routes. We have wrapped our functionality in a `try-catch` to help us manage errors. Firstly we try to decode the token passed to us, if it fails then an error is thrown and it is caught by the `catch` and an error message returned to the client. 
+
+Then we try to update the `watchedVenues` array within the corresponding user to include the new venue id. Again, we know that the username is valid so we know this will succeed. 
+
 #### Collecting venues
+The 
 
 #### Deleting venues
