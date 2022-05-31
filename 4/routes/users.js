@@ -1,6 +1,7 @@
 const usersRouter = require('express').Router()
 const crypto = require('crypto')
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const { ObjectId } = require('mongodb');
 const { getUsers, getVenues } = require('../db');
 
 require('dotenv').config()
@@ -90,14 +91,58 @@ usersRouter.post('/login', async (req, res) => {
 });
 
 usersRouter.post('/myvenues', async (req, res) => {
+    let venues = await getVenues()
+    let users = await getUsers()
+
+    let decoded = {}
     try {
-        let decoded = jwt.verify(req.query.token, process.env.SUPER_SECRET_KEY);
-        await users.updateOne({ username: decoded.username },
-            { $push: { watchedVenues: req.body.venueid } })
-        res.status(200).send({ message: "Success! Venue added" })
+        decoded = jwt.verify(req.query.token, process.env.SUPER_SECRET_KEY);
     } catch (error) {
         res.status(401).send({ error: "Token invalid or expired" })
+        return
     }
+
+    let venue = await venues.findOne({ _id: ObjectId(req.body.venueid) })
+    await users.updateOne({ username: decoded.username },
+        { $push: { watchedVenues: venue } })
+    res.status(200).send({ message: "Success! Venue added" })
+})
+
+usersRouter.get('/myvenues', async (req, res) => {
+    let users = await getUsers()
+
+    let decoded = {}
+    try {
+        decoded = jwt.verify(req.query.token, process.env.SUPER_SECRET_KEY);
+    } catch (error) {
+        res.status(401).send({ error: "Token invalid or expired" })
+        return
+    }
+
+    let user = await users.findOne({ username: decoded.username });
+    res.status(200).send({ venues: user.watchedVenues })
+})
+
+usersRouter.delete('/myvenues', async (req, res) => {
+    let users = await getUsers()
+
+    let decoded = {}
+    try {
+        decoded = jwt.verify(req.query.token, process.env.SUPER_SECRET_KEY);
+    } catch (error) {
+        res.status(401).send({ error: "Token invalid or expired" })
+        return
+    }
+
+    await users.updateOne({ username: decoded.username },
+        {
+            $pull: {
+                watchedVenues: {
+                    _id: ObjectId(req.body.venueid)
+                }
+            }
+        })
+    res.status(200).send({ message: "Success!" })
 })
 
 module.exports.usersRouter = usersRouter

@@ -132,7 +132,7 @@ Notice we now have the line `app.use("/venues", venuesRouter)`. This means that 
 Good, all our code should now be in the correct spot and we can start building up our authentication process. Try adding some venues to our database using a POST request to the route `http://localhost:5000/venues`, then try collecting all of our venues using a GET request to the same url.
 
 ## Authentication
-Authentication can be one of the most challenging parts of an application. If you want it to be properly secure there are many many different measures you need to take, so there are often pre written packages such as `PassportJS` already written to help simplify the process. `PassportJS` can be good, but it is a very flexible framework and can be challenging to get it up and running, especially with no prior experience in authentication
+Authentication can be one of the most challenging parts of an application. If you want it to be properly secure there are many many different measures you need to take, so there are often pre written packages such as `PassportJS` already written to help simplify the process. `PassportJS` can be good, but it is a very flexible framework and can be challenging to get it up and running, especially with no prior experience in authentication.
 
 For us though, we are going to make our own authentication process and do it in a simple way. This wil be a very easy way for you to add user specific functionality to your web app.
 
@@ -279,24 +279,70 @@ To add a venue, we want to use the mongodb `$push` functionality. Set up a POST 
 
 Also, because we created the token we are being passed and we know that a valid username is contained in that token, if we can decode it with our secret key we can be sure it came from a valid user.
 
+So, we want to fetch the venue from the venues collection, and then push it to our `watchedVenues` array. MongoDB is a noSQL database, not a relational database. This means it is best practice for us to store ALL data required for any possible calls within the one object. So if we wanted any and all data on a user, we only have to access the user collection. Hence, we will store the full venue object in the `watchedVenues` array.
+
+This is what our route might look like:
+
 ```js
 usersRouter.post('/myvenues', async (req, res) => {
+    let venues = await getVenues()
+    let users = await getUsers()
+    let decoded = {}
+
     try {
-        let decoded = jwt.verify(req.query.token, process.env.SUPER_SECRET_KEY);
-        await users.updateOne({ username: decoded.username },
-            { $push: { watchedVenues: req.body.venueid } })
-        res.status(200).send({ message: "Success! Venue added" })
+        decoded = jwt.verify(req.query.token, process.env.SUPER_SECRET_KEY);
     } catch (error) {
         res.status(401).send({ error: "Token invalid or expired" })
+        return
     }
+    
+    let venue = await venues.findOne({ _id: ObjectId(req.body.venueid) })
+    await users.updateOne({ username: decoded.username },
+        { $push: { watchedVenues: venue } })
+    res.status(200).send({ message: "Success! Venue added" })
 })
 ```
 
-Clearly this is a lot more simple than the `login` and `signup` routes. We have wrapped our functionality in a `try-catch` to help us manage errors. Firstly we try to decode the token passed to us, if it fails then an error is thrown and it is caught by the `catch` and an error message returned to the client. 
+We try to decode the token passed to us, if it fails then an error is thrown and it is caught by the `catch` and an error message returned to the client. Otherwise, we find the venue correponding to the `venueid`, then `$push` it to our `watchedVenues` array. We know that the username contained in the jwt will be valid, so we know this operation will succeed.
 
-Then we try to update the `watchedVenues` array within the corresponding user to include the new venue id. Again, we know that the username is valid so we know this will succeed. 
+You might think, but what if I update a venue using a PUT request to `/venues`? No, that will not update the venue stored within the user. The noSQL does not (is not meant to) support relational operations, so if you want to store user specific data which is meant to rely on generally accessible data, MongoDB might not be the best choice for your project. Make sure you do your own research before settling on a database!
 
 #### Collecting venues
-The 
+This one is quite simple. We can do the same kind of token extraction as in the post request above, then we just pull the user from the users collection and return the `watchedVenues` field inside, like so:
+
+```js
+usersRouter.get('/myvenues', async (req, res) => {
+    let users = await getUsers()
+
+    let decoded = {}
+    try {
+        decoded = jwt.verify(req.query.token, process.env.SUPER_SECRET_KEY);
+    } catch (error) {
+        res.status(401).send({ error: "Token invalid or expired" })
+        return
+    }
+
+    let user = await users.findOne({ username: decoded.username });
+    res.status(200).send({ venues: user.watchedVenues })
+
+})
+```
 
 #### Deleting venues
+Deleting is quite similar to inserting, but instead of `$push`, we use `$pull`. The second half of your DELETE request might look a bit like this:
+
+```js
+    await users.updateOne({ username: decoded.username },
+        {
+            $pull: {
+                watchedVenues: {
+                    _id: ObjectId(req.body.venueid)
+                }
+            }
+        })
+    res.status(200).send({ message: "Success!" })
+```
+
+And we made it! That is the end of this tutorial, it is quite a long one but hopefully you have an idea of how to implement user functionality now. This should also have given you a bit more of a grasp of how to use MongoDB, make sure you read the docs and do your own research before deciding if it is the best option for your project.
+
+To build upon this you can make a `/refreshtoken` route, which will give you a new JWT with another hour expiry timer. 
